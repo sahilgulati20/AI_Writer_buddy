@@ -22,14 +22,15 @@ def main():
     # 3. Default Settings
     current_mode = MODE_SINGLE_LINE
     
-    speak("Welcome to AI Writer Buddy.")
-    speak("I am set to Single Line mode.")
+    speak("Hi! I'm your AI Writer Buddy. I'm ready to write.")
+    speak("I am currently in Single Line mode.")
 
     # Generator for voice input
     voice_stream = listener.listen()
 
     while True:
         # --- WAIT FOR INPUT ---
+        listener.reset_grammar() # Ensure we are in free-text mode
         print("\n[LISTENING]...")
         
         # Get next phrase
@@ -44,9 +45,11 @@ def main():
         
         # 1. Buddy Line Options
         if "buddy line options" in text or "line options" in text:
-            speak("You have two options. First, Single Line. Second, Multi Line.")
-            speak("Which one do you want? Say Single or Multi.")
+            speak("I can switch modes. Say Single for single line, or Multi for multi line.")
             
+            # Restrict grammar for accuracy
+            listener.set_grammar(["single", "multi"])
+
             # Wait for selection
             while True:
                 try:
@@ -55,28 +58,33 @@ def main():
                     
                     if "single" in selection:
                         current_mode = MODE_SINGLE_LINE
-                        speak("Okay. Single Line mode selected.")
+                        speak("Got it. I've switched to Single Line mode.")
                         break
                     elif "multi" in selection:
                         current_mode = MODE_MULTI_LINE
-                        speak("Okay. Multi Line mode selected.")
+                        speak("Understood. Multi Line mode active.")
                         break
                     else:
-                        speak("Please say Single, or Multi.")
+                        speak("Sorry, please just say Single or Multi.")
                 except StopIteration:
                     break
+            
+            listener.reset_grammar()
             continue
 
         # 2. Sleep / Stop
         if "sleep" in text or "stop" in text:
-            speak("Going to sleep. Restart program to wake me up.")
+            speak("Okay, taking a nap. Restart me when you need me.")
             break
 
         # --- CONFIRMATION LOOP ---
         # If we are here, 'text' is something the user might want to write.
         
+        # Restrict grammar for confirmation
+        listener.set_grammar(["yes", "no", "sleep"])
+        
         while True:
-            speak(f"You said: {text}. Do you want me to write this? Say Yes or No.")
+            speak(f"I heard: {text}. Should I write that?")
             
             try:
                 confirmation = next(voice_stream).lower()
@@ -86,42 +94,40 @@ def main():
             print(f"CONFIRM HEARD: {confirmation}")
 
             if "yes" in confirmation:
-                speak("Okay, writing.")
+                speak("Writing it now.")
                 
                 # Plot logic
                 lines = split_to_lines(text)
                 cleaned_svgout.text_to_svg(lines, OUTPUT_FILE)
                 
-                speak("Plotting now...")
+                # speak("Sending to plotter...")
                 try:
                     plot(OUTPUT_FILE)
                 except Exception as e:
                     print(f"Plot error: {e}")
-                    speak("There was an error sending to the plotter.")
+                    speak("Oops, I had trouble sending that to the plotter.")
                 
-                # Note: plot() might block for a while.
-                
-                speak("Done.")
+                speak("All done.")
                 
                 if current_mode == MODE_MULTI_LINE:
-                    speak("Ready for next line.")
+                    speak("What's the next line?")
                 else:
-                    speak("Waiting for next command.")
+                    speak("I'm listening.")
                 break
 
             elif "no" in confirmation:
-                speak("Okay, tell me again what you want to write.")
-                # Break inner loop to go back to main listening loop
+                speak("My apologies. Please tell me again.")
                 break
             
             elif "sleep" in confirmation:
-                speak("Going to sleep.")
+                speak("Goodnight.")
                 return 
 
             else:
-                # If they said something else, ask again
+                speak("Please say Yes or No.")
                 # Loop continues
-                pass
+        
+        listener.reset_grammar()
 
 
 def split_to_lines(text, max_words=8):

@@ -37,3 +37,14 @@ class VoskListener:
                     text = res.get("text", "").strip()
                     if text:
                         yield text
+
+    def set_grammar(self, words):
+        """Restricts recognition to a specific list of words/phrases."""
+        # Convert list of words to JSON string format required by Vosk
+        # Example: '["yes", "no", "[unk]"]'
+        grammar = json.dumps(words + ["[unk]"])
+        self.rec = KaldiRecognizer(self.model, SAMPLE_RATE, grammar)
+
+    def reset_grammar(self):
+        """Resets recognition to full vocabulary."""
+        self.rec = KaldiRecognizer(self.model, SAMPLE_RATE)
